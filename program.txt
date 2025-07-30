@@ -1,0 +1,32 @@
+from flask import Flask, render_template, request
+import requests
+
+app = Flask(__name__)
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    asn_data = None
+    error = None
+
+    if request.method == 'POST':
+        ip_address = request.form['ip']
+        try:
+            response = requests.get(f'https://ipinfo.io/{ip_address}/json')
+            if response.status_code == 200:
+                data = response.json()
+                org = data.get('org', 'N/A')
+                asn_data = {
+                    'ip': ip_address,
+                    'asn': org.split()[0] if org != 'N/A' else 'N/A',
+                    'org': ' '.join(org.split()[1:]) if org != 'N/A' else 'N/A',
+                    'country': data.get('country', 'N/A')
+                }
+            else:
+                error = f"Failed to retrieve data for IP {ip_address}"
+        except Exception as e:
+            error = str(e)
+
+    return render_template('index.html', asn_data=asn_data, error=error)
+
+if __name__ == '__main__':
+    app.run(debug=True)
